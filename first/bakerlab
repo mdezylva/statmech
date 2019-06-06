@@ -1,0 +1,131 @@
+import numpy as np
+import scipy as sp
+import pandas as pd
+import random as rand
+import matplotlib.pyplot as plt
+import matplotlib.colors as colors
+import matplotlib.animation as animation
+import scipy.signal
+
+
+class fire_sim_world:
+    def __init__(self, dim, f, p):
+        self.data = np.random.randint(0, 2, dim)
+        self.p = p
+        self.f = f
+
+    def __repr__(self):
+        return f'World({self.data!r}), with probabilities ({self.p!r},{self.f!r})'
+
+    def calc_s(self, runtime):
+        '''
+        Simulates behaviour for a given runtime, and gives the S-value (total number of pixels on fire)
+        '''
+        number_on_fire = 0
+        for i in range(runtime):
+            self.simple_update()
+        for i in range(len(self.data)):
+            for j in range(len(self.data[i])):
+                if self.data[i][j] > 99:
+                    number_on_fire += 1
+
+        return(number_on_fire)
+
+    def simple_update(self):
+        '''
+        Utilises a simple method for updating the world based on conditions specified in question
+        '''
+
+        'Convolution creates a check matrix, with Periodic Boundary Conditions which we can check for behaviour '
+        check = sp.signal.convolve2d(self.data, np.array(
+            [[0., 1., 0.], [1., 0., 1.], [0., 1., 0.]]), mode='same', boundary='wrap')
+
+        for i in range(len(self.data)):
+            for j in range(len(self.data[i])):
+
+                'Behaviour for Red Cells'
+                if self.data[i][j] > 99:
+                    self.data[i][j] = 0
+
+                'Behaviour for Green Cells'
+                if self.data[i][j] == 1:
+                    if check[i][j] > 5:
+                        self.data[i][j] = 100
+                    if rand.random() < self.f:
+                        self.data[i][j] = 100
+
+                'Behaviour for Black Cells'
+                if self.data[i][j] == 0:
+                    if rand.random() < self.p:
+                        self.data[i][j] = 1
+
+
+def complex_update(self):
+    '''
+    Utilises a simple method for updating the world based on conditions specified in question
+    '''
+
+    'Convolution creates a check matrix, with Periodic Boundary Conditions which we can check for behaviour '
+    check = sp.signal.convolve2d(self.data, np.array(
+        [[0., 1., 0.], [1., 0., 1.], [0., 1., 0.]]), mode='same', boundary='wrap')
+
+    for i in range(len(self.data)):
+        for j in range(len(self.data[i])):
+
+            'Behaviour for Red Cells'
+            if self.data[i][j] > 99:
+                self.data[i][j] = 0
+
+            'Behaviour for Green Cells'
+            if self.data[i][j] == 1:
+                if check[i][j] > 5:
+                    self.data[i][j] = 100
+                if rand.random() < self.f:
+                    self.data[i][j] = 100
+
+            'Behaviour for Black Cells'
+            if self.data[i][j] == 0:
+                if check[i][j] < 5 and check[i][j] > 0:
+                    if rand.random() < (self.p - 0.2):
+                        self.data[i][j] = 1
+                if rand.random() < self.p:
+                    self.data[i][j] = 1
+
+
+def animate(i):
+    sim.simple_update()
+    ax.imshow(sim.data, interpolation='nearest', cmap=cmap, norm=norm)
+
+
+def generate_pdf(sim, lower_bound, upper_bound):
+    sim_range = np.logspace(lower_bound, upper_bound, 10)
+    sim_range = sim_range.astype(int)
+    s_values = np.array([])
+    count = 0
+    while count < sim_range[-1]:
+        count += 1
+        if count in sim_range:
+            s_values = np.append(s_values, np.array(sim.calc_s(count)))
+    return(s_values)
+
+
+if __name__ == '__main__':
+    f_prob = float(
+        input("Enter probability of a Green Site catching fire (f) : "))
+    p_prob = float(
+        input("Enter probability of a black site regenerating (p) : "))
+    size = int(input("Enter dimension (NxN) of simulation: "))
+
+    sim = fire_sim_world([size, size], f_prob, p_prob)
+
+    cmap = colors.ListedColormap(['black', 'green', 'red'])
+    bounds = [0, 0.8, 5, 105]
+    norm = colors.BoundaryNorm(bounds, cmap.N)
+    speed = 100
+
+    fig, ax = plt.subplots(figsize=(15, 15))
+    ani = animation.FuncAnimation(fig, animate,
+                                  frames=100, interval=speed,
+                                  save_count=50)
+    plt.draw()
+    plt.show()
